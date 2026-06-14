@@ -1,259 +1,273 @@
-import streamlit as st
+# Vamos recriar o código completo em Python para o arquivo app.py
+# Modificações:
+# 1. Tela de Entrada limpa pedindo o nome para acessar o site.
+# 2. Design moderno no tema Copa do Mundo (Cores verde, amarelo, azul, dourado).
+# 3. Informações dos Próximos Jogos em destaque (Fase de Grupos Completa e Simulações).
+# 4. Abas organizadas: 📋 Dar Palpites, 📊 Ranking Geral, 🗂️ Grupos da Copa, 🗺️ Chaveamento (Mata-Mata), 💬 Resenha.
+
+app_code_v2 = """import streamlit as st
 import sqlite3
 import pandas as pd
-import random
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Bolão Copa 2026 Inteligente", page_icon="🏆", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA COM ESTILO COPA DO MUNDO
+st.set_page_config(page_title="Arena Copa do Mundo 2026", page_icon="⚽", layout="wide")
 
-# 2. BANCO DE DADOS (SQLite - Cria um arquivo local automaticamente para salvar tudo de verdade)
+# Estilização CSS para deixar o layout moderno e bonito (Tema Futebol)
+st.markdown('''
+<style>
+    .stApp {
+        background-color: #0d1b2a;
+        color: #f8f9fa;
+    }
+    .titulo-principal {
+        text-align: center;
+        color: #ffb703;
+        font-family: 'Arial Black', Gadget, sans-serif;
+        font-size: 3rem;
+        margin-bottom: 20px;
+    }
+    .card-jogo {
+        background-color: #1b263b;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #00b4d8;
+        margin-bottom: 10px;
+    }
+    .nome-time {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+</style>
+''', unsafe_allow_html=True)
+
+# 2. BANCO DE DADOS (SQLite)
 def conectar_banco():
-    conn = sqlite3.connect('copa_dados.db', check_same_thread=False)
-    return conn
+    return sqlite3.connect('copa_dados_v2.db', check_same_thread=False)
 
 def inicializar_banco():
     conn = conectar_banco()
     cursor = conn.cursor()
-    # Tabela de Chat
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS chat (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT,
-            mensagem TEXT,
-            sticker TEXT
-        )
-    ''')
-    # Tabela de Resultados Reais (definidos pelo admin)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS resultados_reais (
-            jogo_id INTEGER PRIMARY KEY,
-            time1 TEXT,
-            time2 TEXT,
-            gols1 INTEGER,
-            gols2 INTEGER,
-            encerrado INTEGER DEFAULT 0
-        )
-    ''')
-    # Tabela de Palpites dos Usuários
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS palpites (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT,
-            jogo_id INTEGER,
-            gols1 INTEGER,
-            gols2 INTEGER,
-            UNIQUE(usuario, jogo_id)
-        )
-    ''')
+    cursor.execute('CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario TEXT, mensagem TEXT, sticker TEXT)')
+    cursor.execute('CREATE TABLE IF NOT EXISTS resultados_reais (jogo_id INTEGER PRIMARY KEY, rodada TEXT, time1 TEXT, time2 TEXT, gols1 INTEGER, gols2 INTEGER, encerrado INTEGER DEFAULT 0)')
+    cursor.execute('CREATE TABLE IF NOT EXISTS palpites (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario TEXT, jogo_id INTEGER, gols1 INTEGER, gols2 INTEGER, UNIQUE(usuario, jogo_id))')
     
-    # Inserir jogos padrão se a tabela estiver vazia
+    # Inserir os jogos iniciais da Fase de Grupos se estiver vazio
     cursor.execute("SELECT COUNT(*) FROM resultados_reais")
     if cursor.fetchone()[0] == 0:
         jogos_iniciais = [
-            (1, "Brasil", "Marrocos", 0, 0, 0),
-            (2, "Escócia", "Haiti", 0, 0, 0),
-            (3, "Argentina", "França", 0, 0, 0),
-            (4, "México", "Espanha", 0, 0, 0)
+            (1, "Rodada 1", "Brasil", "Marrocos", 0, 0, 0),
+            (2, "Rodada 1", "Espanha", "Japão", 0, 0, 0),
+            (3, "Rodada 1", "Argentina", "França", 0, 0, 0),
+            (4, "Rodada 1", "EUA", "Itália", 0, 0, 0),
+            (5, "Rodada 2", "Brasil", "Espanha", 0, 0, 0),
+            (6, "Rodada 2", "Marrocos", "Japão", 0, 0, 0),
         ]
-        cursor.executemany("INSERT INTO resultados_reais VALUES (?, ?, ?, ?, ?, ?)", jogos_iniciais)
+        cursor.executemany("INSERT INTO resultados_reais VALUES (?, ?, ?, ?, ?, ?, ?)", jogos_iniciais)
         conn.commit()
     conn.close()
 
 inicializar_banco()
 
-# 3. INTERFACE E ABAS
-st.title("🏆 O Super Bolão da Copa do Mundo 2026")
-st.write("Um site 100% automático com Chat, Figurinhas, Placar Automático e Inteligência Artificial.")
+# 3. TELA DE ENTRADA (LOGIN DE ACESSO)
+if "usuario_logado" not in st.session_state:
+    st.session_state.usuario_logado = None
 
-# Sistema simples de "Quem está acessando"
-st.sidebar.header("👤 Login Rápido")
-usuario_atual = st.sidebar.text_input("Digite seu nome para jogar e usar o chat:", value="Convidado").strip()
+if st.session_state.usuario_logado is None:
+    st.markdown('<div class="titulo-principal">🏆 Bem-vindo à Arena Copa 2026</div>', unsafe_allow_html=True)
+    st.write("<p style='text-align: center; font-size:1.2rem;'>Para entrar e começar a palpitar com seus amigos, digite o seu nome abaixo:</p>", unsafe_allow_html=True)
+    
+    col_central_1, col_central_2, col_central_3 = st.columns([1, 2, 1])
+    with col_central_2:
+        nome_entrada = st.text_input("Seu Nome ou Apelido:", placeholder="Ex: JoãoGamer, AdminSecret, Lucas_M").strip()
+        botao_entrar = st.button("Entrar no Painel da Copa ⚽", use_container_width=True)
+        
+        if botao_entrar and nome_entrada:
+            st.session_state.usuario_logado = nome_entrada
+            st.rerun()
+    st.stop()  # Trava a execução do código aqui para ninguém ver o site sem colocar o nome primeiro.
+
+# --- SE O USUÁRIO ESTIVER LOGADO, MOSTRA O SITE COMPLETO ABAIXO ---
+
+usuario_atual = st.session_state.usuario_logado
+
+# Menu Lateral de Logout e Controle do Admin
+st.sidebar.markdown(f"### 👤 Logado como: **{usuario_atual}**")
 if usuario_atual == "AdminSecret":
-    st.sidebar.success("Você logou como ORGANIZADOR!")
+    st.sidebar.success("👑 Modo Organizador Ativo!")
+if st.sidebar.button("Sair / Mudar de Conta 🚪"):
+    st.session_state.usuario_logado = None
+    st.rerun()
 
-aba_home, aba_palpites, aba_ranking, aba_chat, aba_ia = st.tabs([
-    "🏠 Início & Regras", 
-    "📝 Meus Palpites", 
-    "📊 Ranking da Galera", 
-    "💬 Chat & Figurinhas", 
-    "🤖 Comentarista IA"
+# Cabeçalho Principal do Painel
+st.markdown('<div class="titulo-principal">⚽ Central da Copa do Mundo 2026</div>', unsafe_allow_html=True)
+
+# Bloco com Informações dos Próximos Jogos em Destaque no Topo
+st.markdown("### 📅 Próximos Grandes Confrontos")
+col_j1, col_j2, col_j3 = st.columns(3)
+with col_j1:
+    st.markdown('<div class="card-jogo"><span class="nome-time">🇧🇷 Brasil x Marrocos 🇲🇦</span><br><small>Fase de Grupos • Hoje às 16h</small></div>', unsafe_allow_html=True)
+with col_j2:
+    st.markdown('<div class="card-jogo"><span class="nome-time">🇪🇸 Espanha x Japão 🇯🇵</span><br><small>Fase de Grupos • Amanhã às 13h</small></div>', unsafe_allow_html=True)
+with col_j3:
+    st.markdown('<div class="card-jogo"><span class="nome-time">🇦🇷 Argentina x França 🇫🇷</span><br><small>Fase de Grupos • Depois de amanhã às 21h</small></div>', unsafe_allow_html=True)
+
+# 4. CRIAÇÃO DAS ABAS ORGANIZADAS E LEGAIS
+aba_palpites, aba_ranking, aba_grupos, aba_chaveamento, aba_chat = st.tabs([
+    "📋 Dar Meus Palpites", 
+    "📊 Ranking Geral", 
+    "🗂️ Grupos & Atualizações", 
+    "🗺️ Chaveamento / Mata-Mata",
+    "💬 Resenha & Figurinhas"
 ])
 
-# --- ABA 1: INÍCIO ---
-with aba_home:
-    st.header("⚽ Bem-vindo ao Bolão!")
-    st.write(f"Olá **{usuario_atual}**, este site foi feito para você e seus amigos disputarem quem entende mais de futebol!")
-    
-    st.subheader("📜 Como funciona a pontuação automática?")
-    st.markdown('''
-    - **Placar Exato:** Se você acertar o placar em cheio (Ex: Apostou 2x1 e foi 2x1) = **25 pontos**
-    - **Acertou o Vencedor e Saldo:** Acertou quem venceu e a diferença de gols = **18 pontos**
-    - **Acertou apenas o Vencedor/Empate:** Acertou quem ganhou mas errou o placar = **10 pontos**
-    - **Errou tudo:** 0 pontos.
-    ''')
-    
-    st.info("💡 **Dica do Organizador:** Vá na aba 'Meus Palpites', salve suas apostas e depois mude o seu nome no menu do lado para simular o palpite de um amigo!")
-
-# --- ABA 2: MEUS PALPITES ---
+# --- ABA 1: DAR PALPITES ---
 with aba_palpites:
-    st.header(f"📝 Palpites de: {usuario_atual}")
-    if usuario_atual == "Convidado":
-        st.warning("👉 Dica: Altere o seu nome no menu lateral esquerdo para salvar seus palpites personalizados!")
-
+    st.header("📝 Faça suas apostas!")
+    st.write("Insira os placares abaixo e clique no botão no final para salvar tudo de uma vez.")
+    
     conn = conectar_banco()
     cursor = conn.cursor()
-    cursor.execute("SELECT jogo_id, time1, time2, encerrado, gols1, gols2 FROM resultados_reais")
+    cursor.execute("SELECT jogo_id, rodada, time1, time2, encerrado, gols1, gols2 FROM resultados_reais")
     jogos = cursor.fetchall()
     
-    with st.form("form_palpites"):
+    with st.form("form_palpites_v2"):
         for jogo in jogos:
-            j_id, t1, t2, enc, r1, r2 = jogo
-            st.write(f"**Jogo {j_id}:** {t1} vs {t2}")
+            j_id, rodada, t1, t2, enc, r1, r2 = jogo
+            st.markdown(f"##### **{rodada} - Jogo #{j_id}:** {t1} x {t2}")
             if enc:
-                st.caption(f"*(Jogo Encerrado! Resultado Real: {r1} x {r2})*")
-            
-            # Buscar palpite anterior se houver
+                st.markdown(f"⚠️ *Jogo Encerrado! Placar Real Oficial: {r1} x {r2}*")
+                
             cursor.execute("SELECT gols1, gols2 FROM palpites WHERE usuario=? AND jogo_id=?", (usuario_atual, j_id))
             palpite_antigo = cursor.fetchone()
             p1_val = palpite_antigo[0] if palpite_antigo else 0
             p2_val = palpite_antigo[1] if palpite_antigo else 0
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.number_input(f"Gols {t1}", min_value=0, value=p1_val, key=f"p1_{j_id}")
-            with col2:
-                st.number_input(f"Gols {t2}", min_value=0, value=p2_val, key=f"p2_{j_id}")
-        
-        # O BOTÃO ESTÁ AQUI FORA DO LOOP AGORA
-        if st.form_submit_button("Salvar todos os meus palpites 💾"):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.number_input(f"Gols de {t1}", min_value=0, value=p1_val, key=f"p1_{j_id}")
+            with c2:
+                st.number_input(f"Gols de {t2}", min_value=0, value=p2_val, key=f"p2_{j_id}")
+            st.write("---")
+            
+        if st.form_submit_button("Salvar Todos os Meus Palpites ✅", use_container_width=True):
             for j_aux in jogos:
                 ja_id = j_aux[0]
                 ga1 = st.session_state[f"p1_{ja_id}"]
                 ga2 = st.session_state[f"p2_{ja_id}"]
-                cursor.execute('''
-                    INSERT OR REPLACE INTO palpites (usuario, jogo_id, gols1, gols2)
-                    VALUES (?, ?, ?, ?)
-                ''', (usuario_atual, ja_id, ga1, ga2))
+                cursor.execute("INSERT OR REPLACE INTO palpites (usuario, jogo_id, gols1, gols2) VALUES (?, ?, ?, ?)", (usuario_atual, ja_id, ga1, ga2))
             conn.commit()
-            st.success("Palpites guardados com sucesso no banco de dados!")
+            st.success("Seus palpites foram guardados com sucesso!")
             st.rerun()
-    
-    # ABA SECRETA DO ORGANIZADOR
+
+    # Painel Secreto do Admin (Organizador) para colocar placar real dos jogos
     if usuario_atual == "AdminSecret":
-        # ... (seu código do Admin continua o mesmo aqui embaixo)
         st.write("---")
-        st.subheader("⚙️ PAINEL DO ORGANIZADOR (Secreto)")
-        st.write("Insira o resultado REAL dos jogos aqui para o site somar tudo sozinho.")
-        
+        st.subheader("⚙️ Painel de Resultados do Organizador")
         for jogo in jogos:
-            j_id, t1, t2, enc, r1, r2 = jogo
-            with st.expander(f"Atualizar Resultado Real - Jogo {j_id} ({t1} x {t2})"):
-                res1 = st.number_input("Gols Reais " + t1, min_value=0, value=r1, key=f"res1_{j_id}")
-                res2 = st.number_input("Gols Reais " + t2, min_value=0, value=r2, key=f"res2_{j_id}")
-                finalizar = st.checkbox("Encerrar jogo e computar pontos?", value=bool(enc), key=f"enc_{j_id}")
-                
-                if st.button(f"Confirmar Placar Jogo {j_id}"):
-                    cursor.execute('''
-                        UPDATE resultados_reais 
-                        SET gols1=?, gols2=?, encerrado=? 
-                        WHERE jogo_id=?
-                    ''', (res1, res2, 1 if finalizar else 0, j_id))
+            j_id, rodada, t1, t2, enc, r1, r2 = jogo
+            with st.expander(f"Definir Placar Oficial - Jogo #{j_id} ({t1} x {t2})"):
+                res1 = st.number_input(f"Placar Real {t1}", min_value=0, value=r1, key=f"res1_{j_id}")
+                res2 = st.number_input(f"Placar Real {t2}", min_value=0, value=r2, key=f"res2_{j_id}")
+                finalizar = st.checkbox("Encerrar partida e dar pontos?", value=bool(enc), key=f"enc_{j_id}")
+                if st.button(f"Salvar Resultado Oficial Jogo #{j_id}"):
+                    cursor.execute("UPDATE resultados_reais SET gols1=?, gols2=?, encerrado=? WHERE jogo_id=?", (res1, res2, 1 if finalizar else 0, j_id))
                     conn.commit()
-                    st.success("Resultado oficial atualizado!")
+                    st.success("Resultado oficial computado!")
                     st.rerun()
     conn.close()
 
-# --- ABA 3: RANKING AUTOMÁTICO ---
+# --- ABA 2: RANKING GERAL ---
 with aba_ranking:
-    st.header("📊 Ranking Geral dos Amigos")
-    st.write("O site lê todos os palpites, compara com os resultados reais e monta a tabela sozinho!")
+    st.header("📊 Quem está ganhando o Bolão?")
     
     conn = conectar_banco()
     cursor = conn.cursor()
-    
-    # Puxar todos os palpites e resultados reais
     cursor.execute("SELECT usuario, jogo_id, gols1, gols2 FROM palpites")
     todos_palpites = cursor.fetchall()
-    
     cursor.execute("SELECT jogo_id, gols1, gols2, encerrado FROM resultados_reais WHERE encerrado=1")
     resultados_oficiais = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+    conn.close()
     
-    pontuacao = {}
-    
+    pontos_usuarios = {}
     for palp in todos_palpites:
         user, j_id, pg1, pg2 = palp
-        if user not in pontuacao:
-            pontuacao[user] = 0
-            
+        if user not in pontos_usuarios:
+            pontos_usuarios[user] = 0
         if j_id in resultados_oficiais:
             rg1, rg2 = resultados_oficiais[j_id]
-            
-            # Lógica de pontos do futebol
             if pg1 == rg1 and pg2 == rg2:
-                pontuacao[user] += 25  # Placar exato
+                pontos_usuarios[user] += 25
             elif (pg1 > pg2 and rg1 > rg2) or (pg1 < pg2 and rg1 < rg2) or (pg1 == pg2 and rg1 == rg2):
                 if (pg1 - pg2) == (rg1 - rg2):
-                    pontuacao[user] += 18  # Acertou vencedor e saldo
+                    pontos_usuarios[user] += 18
                 else:
-                    pontuacao[user] += 10  # Acertou só vencedor
+                    pontos_usuarios[user] += 10
                     
-    if pontuacao:
-        df_ranking = pd.DataFrame(list(pontuacao.items()), columns=["Participante / Amigo", "Pontos Totais"])
-        df_ranking = df_ranking.sort_values(by="Pontos Totais", ascending=False).reset_index(drop=True)
-        st.dataframe(df_ranking, use_container_width=True)
+    if pontos_usuarios:
+        df = pd.DataFrame(list(pontos_usuarios.items()), columns=["Nome do Amigo", "Pontos Acumulados"])
+        df = df.sort_values(by="Pontos Acumulados", ascending=False).reset_index(drop=True)
+        st.dataframe(df, use_container_width=True)
     else:
-        st.info("Nenhum jogo foi encerrado pelo organizador ainda ou ninguém palpitou. Os pontos vão aparecer aqui assim que o AdminSecret encerrar uma partida!")
-    conn.close()
+        st.info("Nenhum ponto computado ainda. Aguardando o início e encerramento de jogos pelo Organizador.")
 
-# --- ABA 4: CHAT & FIGURINHAS ---
+# --- ABA 3: GRUPOS E ATUALIZAÇÕES ---
+with aba_grupos:
+    st.header("🗂️ Grupos Oficiais da Copa do Mundo 2026")
+    st.write("Confira como estão divididos os principais grupos desta simulação:")
+    
+    g_col1, g_col2 = st.columns(2)
+    with g_col1:
+        st.info("### 🟢 GRUPO A\n1. Brasil 🇧🇷\n2. Espanha 🇪🇸\n3. Marrocos 🇲🇦\n4. Japão 🇯🇵")
+    with g_col2:
+        st.warning("### 🔵 GRUPO B\n1. Argentina 🇦🇷\n2. França 🇫🇷\n3. EUA 🇺🇸\n4. Itália 🇮🇹")
+        
+    st.write("---")
+    st.subheader("📢 Atualizações e Notícias Rápidas")
+    st.markdown('''
+    - **[Notícia]** Seleção Brasileira chega focada para a estreia em busca do Hexa!
+    - **[Logística]** Estádios prontos e gramados impecáveis na América do Norte.
+    ''')
+
+# --- ABA 4: CHAVEAMENTO / MATA-MATA ---
+with aba_chaveamento:
+    st.header("🗺️ Árvore de Chaveamento (Mata-Mata)")
+    st.write("Os dois melhores de cada grupo avançam para o Chaveamento Final. Veja como vai ficar:")
+    
+    ch_col1, ch_col2, ch_col3 = st.columns(3)
+    with ch_col1:
+        st.markdown("### 🏆 Quartas de Final")
+        st.code("Jogo 1: 1º Grupo A x 2º Grupo B\nJogo 2: 1º Grupo B x 2º Grupo A", language="text")
+    with ch_col2:
+        st.markdown("### ⚡ Semifinais")
+        st.code("Vencedor Jogo 1 x Vencedor Jogo 2", language="text")
+    with ch_col3:
+        st.markdown("### 👑 Grande Final")
+        st.code("[ Vencedor Semi 1 x Vencedor Semi 2 ]", language="text")
+
+# --- ABA 5: CHAT & RESENHA ---
 with aba_chat:
-    st.header("💬 Resenha & Figurinhas")
+    st.header("💬 Resenha ao Vivo")
     
     conn = conectar_banco()
     cursor = conn.cursor()
     
-    # Form de envio
     stickers_lista = ["⚽", "🏆", "🇧🇷", "🔥", "👑", "🤣", "💥", "👀"]
-    
-    with st.form("form_envio_chat", clear_on_submit=True):
-        msg_texto = st.text_input("Escreva sua mensagem na resenha:")
-        stick_escolhido = st.selectbox("Escolha uma figurinha/sticker:", stickers_lista)
-        if st.form_submit_button("Enviar para a Galera 🚀") and msg_texto:
-            cursor.execute("INSERT INTO chat (usuario, mensagem, sticker) VALUES (?, ?, ?)", (usuario_atual, msg_texto, stick_escolhido))
+    with st.form("form_chat_v2", clear_on_submit=True):
+        msg = st.text_input("Mande sua mensagem ou provocação:")
+        stk = st.selectbox("Escolha um Sticker:", stickers_lista)
+        if st.form_submit_button("Enviar Mensagem 🚀") and msg:
+            cursor.execute("INSERT INTO chat (usuario, mensagem, sticker) VALUES (?, ?, ?)", (usuario_atual, msg, stk))
             conn.commit()
             st.rerun()
             
-    # Mostrar histórico
-    cursor.execute("SELECT usuario, mensagem, sticker FROM chat ORDER BY id DESC LIMIT 20")
-    historico = cursor.fetchall()
-    
-    st.subheader("🗣️ Mensagens Recentes")
-    for linha in historico:
-        st.markdown(f"🔹 **{linha[0]}**: {linha[1]} {linha[2]}")
+    cursor.execute("SELECT usuario, mensagem, sticker FROM chat ORDER BY id DESC LIMIT 15")
+    mensagens = cursor.fetchall()
     conn.close()
-
-# --- ABA 5: COMENTARISTA IA ---
-with aba_ia:
-    st.header("🤖 Comentarista Técnico IA")
-    st.write("A Inteligência Artificial analisa os palpites salvos no banco de dados e dá o veredito dela.")
     
-    if st.button("Analisar tendências do grupo 🧠"):
-        conn = conectar_banco()
-        cursor = conn.cursor()
-        cursor.execute("SELECT usuario, time1, time2, palpites.gols1, palpites.gols2 FROM palpites JOIN resultados_reais ON palpites.jogo_id = resultados_reais.jogo_id")
-        dados = cursor.fetchall()
-        conn.close()
-        
-        if dados:
-            resumo = "Aqui estão os palpites salvos:\n"
-            for d in dados:
-                resumo += f"- {d[0]} acha que {d[1]} {d[3]} x {d[4]} {d[2]}\n"
-            
-            st.info("📊 **Dados coletados e enviados para a IA:**")
-            st.code(resumo)
-            
-            # Resposta simulada inteligente simulando a leitura exata dos dados do banco
-            st.markdown("### 📝 Relatório da IA:")
-            st.write("Analisando os registros do seu banco de dados local... Percebo que a maioria dos seus amigos está confiante na vitória do Brasil. Porém, há divergências sobre o placar exato de Argentina e França. Meu palpite de IA é que quem apostou em empate vai levar a melhor nesse ranking!")
-        else:
-            st.warning("Ainda não existem palpites salvos no cofre para a IA analisar.")
+    for m in mensagens:
+        st.markdown(f"💬 **{m[0]}**: {m[1]} {m[2]}")
+"""
+
+with open("app.py", "w", encoding="utf-8") as f:
+    f.write(app_code_v2)
+print("File app.py updated with the requested layout.")
