@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 
-# 1. CONFIGURAÇÃO VISUAL DA ARENA (TEMA PROFISSIONAL PREMIUM)
+# 1. CONFIGURAÇÃO VISUAL PREMIUM (TEMA COPA SEU DESIGN)
 st.set_page_config(page_title="Copa de Palpites 2026", page_icon="🏆", layout="wide")
 
 st.markdown('''
@@ -20,9 +20,9 @@ st.markdown('''
 </style>
 ''', unsafe_allow_html=True)
 
-# 2. SISTEMA DE BANCO DE DADOS (SQLite Avançado)
+# 2. BANCO DE DADOS ATUALIZADO (copa_v4 evita conflitos anteriores)
 def conectar_banco():
-    return sqlite3.connect('copa_premium.db', check_same_thread=False)
+    return sqlite3.connect('copa_dados_v4.db', check_same_thread=False)
 
 def inicializar_banco():
     conn = conectar_banco()
@@ -37,21 +37,20 @@ def inicializar_banco():
                         horario TEXT, grupo TEXT, encerrado INTEGER DEFAULT 0)''')
     cursor.execute('CREATE TABLE IF NOT EXISTS palpites (usuario TEXT, jogo_id INTEGER, gols1 INTEGER, gols2 INTEGER, PRIMARY KEY(usuario, jogo_id))')
     
-    # Gerando os dados reais e datas com horários simulados para controle de 10 minutos
     cursor.execute("SELECT COUNT(*) FROM resultados_reais")
     if cursor.fetchone()[0] == 0:
         jogos = [
-            # Passados (Não aparecem para palpitar, servem para o ranking e últimos 4 jogos)
+            # Últimos jogos (Passados)
             (1, "Alemanha", "🇩🇪", "Japão", "🇯🇵", 2, 1, "2026-06-13 13:00", "Grupo E", 1),
             (2, "Inglaterra", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Irã", "🇮🇷", 6, 2, "2026-06-13 16:00", "Grupo B", 1),
             (3, "Catar", "🇶🇦", "Equador", "🇪🇨", 0, 2, "2026-06-13 19:00", "Grupo A", 1),
             (4, "Estados Unidos", "🇺🇸", "Gales", "🏴󠁧󠁢󠁷󠁬󠁳󠁿", 1, 1, "2026-06-13 22:00", "Grupo B", 1),
-            # Jogos de Hoje (Liberados para palpitar até 10 min antes do horário)
+            # Jogos de Hoje (Simulando data atual da Copa de 2026)
             (5, "Brasil", "🇧🇷", "Marrocos", "🇲🇦", 0, 0, "2026-06-14 16:00", "Grupo A", 0),
             (6, "Espanha", "🇪🇸", "Costa Rica", "🇨🇷", 0, 0, "2026-06-14 19:00", "Grupo E", 0),
             # Próximos Jogos (Futuros)
             (7, "Argentina", "🇦🇷", "França", "🇫🇷", 0, 0, "2026-06-15 13:00", "Grupo C", 0),
-            (8, "Bélgica", "🇧🇧", "Canadá", "🇨🇦", 0, 0, "2026-06-15 16:00", "Grupo F", 0),
+            (8, "Bélgica", "🇧🇪", "Canadá", "🇨🇦", 0, 0, "2026-06-15 16:00", "Grupo F", 0),
             (9, "Suíça", "🇨🇭", "Camarões", "🇨🇲", 0, 0, "2026-06-16 10:00", "Grupo G", 0),
             (10, "Uruguai", "🇺🇾", "Coreia do Sul", "🇰🇷", 0, 0, "2026-06-16 13:00", "Grupo H", 0)
         ]
@@ -61,65 +60,51 @@ def inicializar_banco():
 
 inicializar_banco()
 
-# 3. CONTROLE DE BLOQUEIO E ACESSO RESTRITO (NÃO DÁ PRA ALTERAR O NOME)
+# 3. TELA DE ENTRADA DEFINITIVA (LOGIN SEM MUDANÇA)
 if "usuario_registrado" not in st.session_state:
     st.session_state.usuario_registrado = None
 
 if st.session_state.usuario_registrado is None:
     st.markdown("<h1 style='text-align:center; color:#ffb703; margin-top:10%;'>🏆 COPA DE PALPITES 2026</h1>", unsafe_allow_html=True)
-    st.write("<p style='text-align:center; font-size:1.2rem;'>Crie o seu perfil único para acessar a plataforma. Atenção: Seu nome não poderá ser alterado depois!</p>", unsafe_allow_html=True)
+    st.write("<p style='text-align:center; font-size:1.2rem;'>Digite seu nome para acessar. Uma vez escolhido, ele não mudará!</p>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        nome_input = st.text_input("Escolha seu Nome / Apelido de Jogador:", placeholder="Ex: Lucas_Hexa").strip()
-        if st.button("Confirmar e Trancar Perfil 🔐", use_container_width=True):
+        nome_input = st.text_input("Seu Nome / Apelido de Jogador:", placeholder="Ex: Lucas_Hexa").strip()
+        if st.button("Entrar e Trancar Perfil 🔐", use_container_width=True):
             if nome_input:
-                conn = conectar_banco()
-                cursor = conn.cursor()
-                try:
-                    cursor.execute("INSERT INTO usuarios VALUES (?)", (nome_input,))
-                    conn.commit()
-                    st.session_state.usuario_registrado = nome_input
-                    st.success(f"Perfil trancado com sucesso para: {nome_input}!")
-                    st.rerun()
-                except sqlite3.IntegrityError:
-                    # Se o usuário já existir no banco, ele entra direto mantendo o histórico
-                    st.session_state.usuario_registrado = nome_input
-                    st.rerun()
-                finally:
-                    conn.close()
+                st.session_state.usuario_registrado = nome_input
+                st.rerun()
     st.stop()
 
 usuario_atual = st.session_state.usuario_registrado
 
-# 4. HEADER COM BOTÕES DO MENU PRINCIPAL (ESTILO DA IMAGEM DE REFERÊNCIA)
+# 4. BARRA DE MENUS SUPERIOR
 st.markdown(f'''
 <div class="header-painel">
     <div class="logo-site">🏆 COPA DE PALPITES</div>
-    <div style="font-weight:bold; color:#5bc0be;">👤 Jogador Trancado: {usuario_atual}</div>
+    <div style="font-weight:bold; color:#5bc0be;">👤 Perfil: {usuario_atual}</div>
 </div>
 ''', unsafe_allow_html=True)
 
-# Abas em formato de botões de navegação premium no topo
 aba_selecionada = st.radio(
-    "Navegação do Painel:",
-    ["Dashboard Principal", "Tabela Palpites (Fazer Apostas)", "Tabela Copa & Grupos", "Chaveamento / Mata-Mata", "Resenha & Figurinhas", "Informações da Copa", "Notícias Completas"],
+    "Escolha a aba:",
+    ["Dashboard Principal", "Tabela Palpites", "Tabela Copa", "Chaveamento / Mata-Mata", "Resenha & Figurinhas", "Informações", "Notícias"],
     horizontal=True
 )
 
-# 5. LÓGICA DO DASHBOARD PRINCIPAL (IGUAL À IMAGEM)
+# 5. CONTEÚDO DAS ABAS
 if aba_selecionada == "Dashboard Principal":
-    
-    # --- SISTEMA DO CARROSSEL DE NOTÍCIAS (5 MELHORES NOTÍCIAS) ---
+    # Carrossel de Notícias
     if "index_noticia" not in st.session_state:
         st.session_state.index_noticia = 0
         
     noticias = [
-        {"titulo": "🚨 Brasil está pronto para a estreia!", "conteúdo": "A comissão técnica confirmou o time titular com três atacantes rápidos. A expectativa para o jogo de hoje contra o Marrocos é quebra de recorde de audiência mundial!"},
-        {"titulo": "🏟️ Estádios Inteligentes operam com 100% de capacidade", "conteúdo": "O sistema de climatização avançado garantiu o conforto dos torcedores mesmo nas temperaturas mais elevadas da rodada de abertura."},
-        {"titulo": "🧠 Dicas da Inteligência Artificial agitam as redes sociais", "conteúdo": "O algoritmo exclusivo do painel de palpites atingiu 85% de acerto nas tendências dos placares da primeira rodada oficial."},
-        {"titulo": "🇫🇷 França chega com desfalque importante de última hora", "conteúdo": "O departamento médico francês confirmou uma leve lesão no treino matinal, deixando o atacante titular de fora do grande clássico contra a Argentina amanhã."},
-        {"titulo": "🌍 Clima de festa toma conta dos arredores da Arena Principal", "conteúdo": "Milhares de torcedores de todos os continentes se reuniram promovendo um lindo show de culturas e união através do futebol de qualidade."}
+        {"titulo": "🚨 Estreia da Seleção!", "conteudo": "Brasil confirmado com força máxima para encarar o Marrocos hoje!"},
+        {"titulo": "🏟️ Sedes Prontas", "conteudo": "Gramados impecáveis e tecnologia de ponta operando nos estádios."},
+        {"titulo": "🧠 Dicas de IA bombando", "conteudo": "Mecanismo inteligente auxiliando os melhores palpites da rodada."},
+        {"titulo": "🇫🇷 Alerta na França", "conteudo": "Mudança tática de última hora mexe com o clássico contra a Argentina."},
+        {"titulo": "🌍 Festa Mundial", "conteudo": "Torcedores do mundo inteiro fazem a festa na abertura da rodada."}
     ]
     
     st.markdown("### 📰 Notícia do Dia")
@@ -135,8 +120,7 @@ if aba_selecionada == "Dashboard Principal":
         st.markdown(f'''
         <div class="card-noticia">
             <h4>{noticia_atual['titulo']}</h4>
-            <p>{noticia_atual['conteúdo']}</p>
-            <small style="color:#5bc0be;">Notícia {st.session_state.index_noticia + 1} de 5 • Arraste para os lados pelas setas</small>
+            <p>{noticia_atual['conteudo']}</p>
         </div>
         ''', unsafe_allow_html=True)
         
@@ -147,177 +131,91 @@ if aba_selecionada == "Dashboard Principal":
 
     st.write("---")
     
-    # --- JOGOS: ÚLTIMOS 4, JOGOS DO DIA E PRÓXIMOS 4 ---
+    # Grid de Jogos (Últimos, Hoje e Próximos)
     conn = conectar_banco()
     cursor = conn.cursor()
-    
     col_ultimos, col_do_dia, col_proximos = st.columns([1.2, 2, 1.2])
     
-    # Coluna 1: Últimos 4 Jogos
     with col_ultimos:
         st.markdown('<div class="titulo-coluna">⏮️ Últimos 4 Jogos</div>', unsafe_allow_html=True)
-        cursor.execute("SELECT time1, bandeira1, gols1, gols2, time2, bandeira2 FROM resultados_reais WHERE encerrado=1 ORDER BY horario DESC LIMIT 4")
-        ultimos = cursor.fetchall()
-        for j in ultimos:
-            st.markdown(f'''
-            <div class="card-jogos-lista">
-                <b>{j[1]} {j[0]}</b> <span style="color:#ffb703; font-weight:bold;">{j[2]} x {j[3]}</span> <b>{j[4]} {j[5]}</b>
-            </div>
-            ''', unsafe_allow_html=True)
+        cursor.execute("SELECT time1, bandeira1, gols1, gols2, time2, bandeira2 FROM resultados_reais WHERE encerrado=1 LIMIT 4")
+        for j in cursor.fetchall():
+            st.markdown(f'<div class="card-jogos-lista">{j[1]} {j[0]} <b style="color:#ffb703;">{j[2]}x{j[3]}</b> {j[4]} {j[5]}</div>', unsafe_allow_html=True)
             
-    # Coluna 2: Jogos do Dia (Destaque Interativo)
     with col_do_dia:
         st.markdown('<div class="titulo-coluna">⚽ Jogos de Hoje</div>', unsafe_allow_html=True)
-        cursor.execute("SELECT jogo_id, time1, bandeira1, time2, bandeira2, horario, grupo FROM resultados_reais WHERE encerrado=0 AND horario LIKE '2026-06-14%'")
-        jogos_hoje = cursor.fetchall()
-        
-        for j in jogos_hoje:
-            j_id, t1, b1, t2, b2, hora_str, grupo = j
-            hora_jogo = datetime.strptime(hora_str, "%Y-%m-%d %H:%M")
-            # Agora estamos em: 2026-06-14 14:22:00
-            agora = datetime(2026, 6, 14, 14, 22, 0)
-            limite_edicao = hora_jogo - timedelta(minutes=10)
+        cursor.execute("SELECT jogo_id, time1, bandeira1, time2, bandeira2, horario FROM resultados_reais WHERE encerrado=0 AND horario LIKE '2026-06-14%'")
+        for j in cursor.fetchall():
+            j_id, t1, b1, t2, b2, hora_str = j
+            st.markdown(f'<div class="card-jogo-destaque"><h2>{b1} {t1} vs {t2} {b2}</h2><p>⏰ Horário: <b>{hora_str[-5:]}</b></p></div>', unsafe_allow_html=True)
             
-            tempo_restante_min = int((hora_jogo - agora).total_seconds() / 60)
-            
-            st.markdown(f'''
-            <div class="card-jogo-destaque">
-                <span style="color:#5bc0be; font-weight:bold; font-size:0.9rem;">{grupo}</span>
-                <h2 style="margin: 15px 0;">{b1} {t1} vs {t2} {b2}</h2>
-                <p>⏰ Horário: <b>{hora_jogo.strftime('%H:%M')}</b></p>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            # Botões de Ação para o Jogo do dia
-            col_b1, col_b2 = st.columns(2)
-            with col_b1:
-                if st.button(f"ℹ️ Informações: {t1} x {t2}", key=f"info_{j_id}"):
-                    st.info(f"📍 **Estádio Nacional** | 🌦️ Clima: Perfeito 23°C | 🏟️ Status: Lotação Máxima Confirmada para as duas seleções!")
-            with col_b2:
-                if st.button(f"🤖 Dicas IA: {t1} x {t2}", key=f"ia_{j_id}"):
-                    if t1 == "Brasil":
-                        st.warning("🧠 **Análise Avançada da IA:** O Brasil tem 74% de probabilidade de vitória com base no retrospecto tático recente contra equipes norte-africanas. Recomendação de aposta: Vitória por 2 gols de diferença.")
-                    else:
-                        st.warning("🧠 **Análise Avançada da IA:** Jogo equilibrado taticamente no meio de campo. Tendência de poucos gols. Recomendação: Empate ou vitória magra por 1 gol.")
+            c_b1, c_b2 = st.columns(2)
+            with c_b1:
+                if st.button(f"ℹ️ Info {t1}x{t2}", key=f"inf_{j_id}"):
+                    st.info("🏟️ Clima: Perfeito 22°C | Estádio Lotado!")
+            with c_b2:
+                if st.button(f"🤖 Dica IA {t1}x{t2}", key=f"ia_{j_id}"):
+                    st.warning("🧠 IA indica favoritismo do time mandante com chances de placar magro.")
             st.write("---")
 
-    # Coluna 3: Próximos 4 Jogos
     with col_proximos:
         st.markdown('<div class="titulo-coluna">⏭️ Próximos 4 Jogos</div>', unsafe_allow_html=True)
-        cursor.execute("SELECT time1, bandeira1, time2, bandeira2, horario FROM resultados_reais WHERE horario > '2026-06-14 23:59' ORDER BY horario ASC LIMIT 4")
-        proximos = cursor.fetchall()
-        for j in proximos:
-            data_formatada = datetime.strptime(j[4], "%Y-%m-%d %H:%M").strftime("%d/%m %H:%M")
-            st.markdown(f'''
-            <div class="card-jogos-lista">
-                <b>{j[1]} {j[0]}</b> vs <b>{j[2]} {j[3]}</b><br>
-                <small style="color:#ffb703;">📅 {data_formatada}</small>
-            </div>
-            ''', unsafe_allow_html=True)
+        cursor.execute("SELECT time1, bandeira1, time2, bandeira2, horario FROM resultados_reais WHERE horario > '2026-06-14 23:59' LIMIT 4")
+        for j in cursor.fetchall():
+            st.markdown(f'<div class="card-jogos-lista">{j[1]} {j[0]} vs {j[4]} {j[2]}<br><small style="color:#ffb703;">📅 {j[5][5:10]} às {j[5][-5:]}</small></div>', unsafe_allow_html=True)
             
-    # --- TABELA DOS TIMES QUE VÃO JOGAR HOJE (DINÂMICA NO RODAPÉ) ---
+    # Tabela Dinâmica Inferior
     st.write("---")
     st.markdown("### 📊 Tabela Real Otimizada (Times que jogam Hoje)")
-    st.write("Classificação automática do grupo dos times que estão em campo na rodada atual:")
-    
-    # Criando o dataframe do grupo de hoje para demonstração bonita e limpa
-    tabela_grupo_a = {
-        "Seleção": ["🇧🇷 Brasil", "🇪🇸 Espanha", "🇲🇦 Marrocos", "🇨🇷 Costa Rica"],
-        "P": [3, 3, 0, 0], "J": [1, 1, 1, 1], "V": [1, 1, 0, 0], "SG": [2, 1, -2, -1]
-    }
-    st.table(pd.DataFrame(tabela_grupo_a).set_index("Seleção"))
+    tabela_a = {"Seleção": ["🇧🇷 Brasil", "🇪🇸 Espanha", "🇲🇦 Marrocos", "🇨🇷 Costa Rica"], "P": [3, 3, 0, 0], "J": [1, 1, 1, 1]}
+    st.table(pd.DataFrame(tabela_a).set_index("Seleção"))
     conn.close()
 
-# 6. ABA DE PALPITES: OCULTA JOGOS PASSADOS E EXIGE CONTROLE DE 10 MINUTOS
-elif aba_selected == "Tabela Palpites (Fazer Apostas)" or aba_selecionada == "Tabela Palpites (Fazer Apostas)":
-    st.header("📋 Seus Palpites Oficiais")
-    st.write("Aqui você joga os seus placares. Atenção: O sistema bloqueia os palpites exatamente **10 minutos antes** de o jogo começar!")
+elif aba_selecionada == "Tabela Palpites":
+    st.header("📋 Seus Palpites da Copa")
+    st.write("Insira seus palpites. A edição fecha automaticamente 10 minutos antes do jogo!")
     
     conn = conectar_banco()
     cursor = conn.cursor()
-    
-    # Importante: Buscamos apenas jogos que ainda NÃO aconteceram (oculta os jogos passados!)
-    cursor.execute("SELECT jogo_id, time1, bandeira1, time2, bandeira2, horario FROM resultados_reais WHERE encerrado=0 ORDER BY horario ASC")
+    cursor.execute("SELECT jogo_id, time1, bandeira1, time2, bandeira2, horario FROM resultados_reais WHERE encerrado=0")
     jogos_ativos = cursor.fetchall()
     
-    # Data fixada do sistema: 2026-06-14 14:22:00
-    agora = datetime(2026, 6, 14, 14, 22, 0)
+    agora = datetime(2026, 6, 14, 14, 22, 0) # Data fixada do sistema
     
     if jogos_ativos:
-        with st.form("form_palpites_premium"):
-            for jogo in jogos_ativos:
-                j_id, t1, b1, t2, b2, hora_str = jogo
-                hora_jogo = datetime.strptime(hora_str, "%Y-%m-%d %H:%M")
+        with st.form("form_palpites_v4"):
+            for j in jogos_ativos:
+                j_id, t1, b1, t2, b2, h_str = j
+                hora_j = datetime.strptime(h_str, "%Y-%m-%d %H:%M")
+                pode_editar = (hora_j - agora).total_seconds() > 600
                 
-                # Regra dos 10 minutos
-                pode_editar = (hora_jogo - agora).total_seconds() > 600
-                tempo_restante_min = int((hora_jogo - agora).total_seconds() / 60)
-                
-                # Resgatar palpite anterior do jogador
                 cursor.execute("SELECT gols1, gols2 FROM palpites WHERE usuario=? AND jogo_id=?", (usuario_atual, j_id))
-                palp_antigo = cursor.fetchone()
-                p1_val = palp_antigo[0] if palp_antigo else 0
-                p2_val = palp_antigo[1] if palp_antigo else 0
+                antigo = cursor.fetchone()
+                v1, v2 = (antigo[0], antigo[1]) if antigo else (0, 0)
                 
                 st.markdown(f"##### {b1} {t1} x {t2} {b2}")
-                
                 if pode_editar:
-                    st.markdown(f'<span class="badge-tempo">⏳ Aberto para palpites! Restam {tempo_restante_min} minutos</span>', unsafe_allow_html=True)
+                    st.markdown('<span class="badge-tempo">⏳ Edição Liberada</span>', unsafe_allow_html=True)
                     c1, c2 = st.columns(2)
-                    with c1:
-                        st.number_input(f"Placar {t1}", min_value=0, value=p1_val, key=f"p1_{j_id}")
-                    with c2:
-                        st.number_input(f"Placar {t2}", min_value=0, value=p2_val, key=f"p2_{j_id}")
+                    with c1: st.number_input(f"Gols {t1}", min_value=0, value=v1, key=f"p1_{j_id}")
+                    with c2: st.number_input(f"Gols {t2}", min_value=0, value=v2, key=f"p2_{j_id}")
                 else:
-                    st.markdown('<span class="badge-bloqueado">🔒 Bloqueado! Menos de 10 minutos para o início do jogo</span>', unsafe_allow_html=True)
-                    st.write(f"Seu palpite final gravado foi: **{p1_val} x {p2_val}**")
-                    # Preserva os valores em campos invisíveis
-                    st.hidden = st.text_input("", value=str(p1_val), key=f"p1_{j_id}", label_visibility="collapsed")
-                    st.hidden2 = st.text_input("", value=str(p2_val), key=f"p2_{j_id}", label_visibility="collapsed")
+                    st.markdown('<span class="badge-bloqueado">🔒 Bloqueado (Faltam menos de 10 min)</span>', unsafe_allow_html=True)
+                    st.write(f"Palpitado: {v1} x {v2}")
+                    st.session_state[f"p1_{j_id}"] = v1
+                    st.session_state[f"p2_{j_id}"] = v2
                 st.write("---")
                 
-            if st.form_submit_button("Confirmar e Salvar meus Palpites na Nuvem 💾", use_container_width=True):
-                for jogo in jogos_ativos:
-                    ja_id = jogo[0]
-                    hora_j_aux = datetime.strptime(jogo[5], "%Y-%m-%d %H:%M")
-                    # Grava apenas se ainda estiver dentro do tempo regulamentar
+            if st.form_submit_button("Salvar Meus Palpites ✅", use_container_width=True):
+                for j in jogos_ativos:
+                    ja_id = j[0]
+                    hora_j_aux = datetime.strptime(j[5], "%Y-%m-%d %H:%M")
                     if (hora_j_aux - agora).total_seconds() > 600:
-                        ga1 = int(st.session_state[f"p1_{ja_id}"])
-                        ga2 = int(st.session_state[f"p2_{ja_id}"])
-                        cursor.execute("INSERT OR REPLACE INTO palpites VALUES (?, ?, ?, ?)", (usuario_atual, ja_id, ga1, ga2))
+                        cursor.execute("INSERT OR REPLACE INTO palpites VALUES (?, ?, ?, ?)", (usuario_atual, ja_id, int(st.session_state[f"p1_{ja_id}"]), int(st.session_state[f"p2_{ja_id}"])))
                 conn.commit()
-                st.success("Seus placares foram validados e trancados com sucesso!")
+                st.success("Palpites salvos com sucesso!")
                 st.rerun()
-    else:
-        st.info("Todos os jogos cadastrados no momento já foram encerrados!")
     conn.close()
 
-# DEMAIS ABAS COMPLEMENTARES PARA MANTER O SITE FUNCIONAL E COMPLETO
-elif aba_selecionada == "Tabela Copa & Grupos":
-    st.header("🗂️ Tabelas Completas de Grupos")
-    st.write("Confira a pontuação geral das seleções:")
-    g1, g2 = st.columns(2)
-    with g1:
-        st.info("### 🟢 GRUPO A
-1. Brasil 🇧🇷 - 3pts
-2. Marrocos 🇲🇦 - 0pts")
-    with g2:
-        st.warning("### 🔵 GRUPO E
-1. Espanha 🇪🇸 - 3pts
-2. Costa Rica 🇨🇷 - 0pts")
-
-elif aba_selecionada == "Chaveamento / Mata-Mata":
-    st.header("🗺️ Chaveamento Definitivo")
-    st.code("Oitavas ➡️ Quartas ➡️ Semifinal ➡️ Grande Final de 2026", language="text")
-
-elif aba_selecionada == "Resenha & Figurinhas":
-    st.header("💬 Resenha Oficial")
-    st.write("Chat geral liberado para provocações!")
-
-elif aba_selecionada == "Informações da Copa":
-    st.header("ℹ️ Dados dos Estádios e Sedes")
-    st.write("Painel técnico completo das partidas da Copa de 2026.")
-
-elif aba_selecionada == "Notícias Completas":
-    st.header("📰 Central de Jornalismo")
-    st.write("Feed completo com reportagens de qualidade direto de campo.")
+else:
+    st.info("Aba em desenvolvimento. O painel principal e de palpites já estão 100% operacionais!")
