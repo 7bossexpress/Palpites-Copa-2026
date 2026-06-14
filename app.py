@@ -5,7 +5,7 @@ from datetime import datetime
 import urllib.request
 import xml.etree.ElementTree as ET
 
-# 1. SISTEMA DINÂMICO DE TEMAS
+# 1. SISTEMA DINÂMICO DE TEMAS (Seletor de Aparência)
 if "tema_escolhido" not in st.session_state:
     st.session_state.tema_escolhido = "Branco"
 
@@ -41,9 +41,9 @@ st.markdown(f'''
 </style>
 ''', unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS CORE (Nova versão v11 estável)
+# 2. BANCO DE DADOS CORE ATUALIZADO (v12)
 def conectar_banco():
-    return sqlite3.connect('copa_dados_v11.db', check_same_thread=False)
+    return sqlite3.connect('copa_dados_v12.db', check_same_thread=False)
 
 def inicializar_banco():
     conn = conectar_banco()
@@ -52,16 +52,16 @@ def inicializar_banco():
     cursor.execute('''CREATE TABLE IF NOT EXISTS resultados_reais (
                         jogo_id INTEGER PRIMARY KEY, grupo TEXT, data_jogo TEXT, horario TEXT,
                         time1 TEXT, gols1 INTEGER, time2 TEXT, gols2 INTEGER, status TEXT)''')
-    cursor.execute('CREATE TABLE IF NOT EXISTS palpites (usuario TEXT, jogo_id INTEGER, gols1 INTEGER, gols2 INTEGER, PRIMARY KEY(usuario, jogo_id))''')
+    cursor.execute('CREATE TABLE IF NOT EXISTS palpites (usuario TEXT, jogo_id INTEGER, gols1 INTEGER, gols2 INTEGER, PRIMARY KEY(usuario, jogo_id))')
     
     cursor.execute("SELECT COUNT(*) FROM resultados_reais")
     if cursor.fetchone()[0] == 0:
         jogos = [
-            # Últimos Resultados que já fecharam
+            # Passado
             (1, "Grupo F", "14/06", "14:00", "Holanda", 1, "Suécia", 1, "encerrado"),
-            # JOGO DE AGORA: Alemanha x Curaçao AO VIVO
+            # AGORA: Alemanha x Curaçao AO VIVO
             (2, "Grupo E", "14/06", "21:00", "Alemanha", 2, "Curaçao", 1, "ao_vivo"),
-            # Próximos jogos da lista oficial enviada
+            # Futuros (Agendados)
             (3, "Grupo F", "14/06", "23:00", "Tunísia", 0, "Japão", 0, "agendado"),
             (4, "Grupo H", "15/06", "13:00", "Espanha", 0, "Cabo Verde", 0, "agendado"),
             (5, "Grupo G", "15/06", "16:00", "Bélgica", 0, "Egito", 0, "agendado"),
@@ -90,7 +90,7 @@ if st.session_state.usuario_registrado is None:
 
 usuario_atual = st.session_state.usuario_registrado
 
-# 4. HEADER
+# 4. HEADER PRINCIPAL
 st.markdown(f'''
 <div class="header-painel">
     <div class="logo-site">🏆 PORTAL COPA DE PALPITES</div>
@@ -100,7 +100,7 @@ st.markdown(f'''
 
 st.session_state.tema_escolhido = st.selectbox("🎨 Mudar Aparência do Site:", ["Branco", "Preto", "Azul", "Dourado", "Verde e Amarelo"])
 
-# 5. ABAS CORRIGIDAS (Nomes idênticos para evitar o NameError!)
+# 5. ABAS CORRIGIDAS E ALINHADAS
 aba_noticias, aba_palpites, aba_tabela, aba_chaveamento = st.tabs([
     "📰 Notícias & Jogos", 
     "📋 Tabela Palpites", 
@@ -112,14 +112,12 @@ aba_noticias, aba_palpites, aba_tabela, aba_chaveamento = st.tabs([
 with aba_noticias:
     st.markdown('<div class="titulo-secao">📰 Últimas Notícias Verdadeiras (Tempo Real - UOL Esporte)</div>', unsafe_allow_html=True)
     
-    # Buscador de notícias reais direto do Feed XML Oficial do UOL
     try:
         url_rss = "https://esporte.uol.com.br/futebol/ultimas-noticias/index.xml"
         req = urllib.request.Request(url_rss, headers={'User-Agent': 'Mozilla/5.5'})
         xml_data = urllib.request.urlopen(req).read()
         root = ET.fromstring(xml_data)
         
-        # Pega as 3 primeiras notícias mais quentes do momento
         noticias_puxadas = []
         for item in root.findall('.//item')[:3]:
             titulo_real = item.find('title').text
@@ -134,11 +132,11 @@ with aba_noticias:
             </div>
             ''', unsafe_allow_html=True)
     except:
-        st.info("Carregando feed de notícias em tempo real... Dê F5 para reatualizar os dados do UOL.")
+        st.info("Sincronizando feed de notícias com os servidores do UOL... Aguarde um instante.")
 
     st.write("---")
     
-    # Grid de Confrontos Triplo
+    # Grid Triplo de Jogos
     conn = conectar_banco()
     cursor = conn.cursor()
     col_l1, col_l2, col_l3 = st.columns([1.3, 2, 1.3])
@@ -160,10 +158,10 @@ with aba_noticias:
             cb1, cb2 = st.columns(2)
             with cb1:
                 if st.button("ℹ️ Informações", key=f"inf_{j_id}", use_container_width=True):
-                    st.info(f"📊 Partida em andamento. Estatísticas e lances reais sendo computados na rodada atual.")
+                    st.info("📊 Partida em andamento monitorada em tempo real pelos painéis esportivos.")
             with cb2:
                 if st.button("🤖 Dicas IA", key=f"ia_{j_id}", use_container_width=True):
-                    st.warning("🧠 IA analisa: Jogo dinâmico com forte presença ofensiva de ambas as equipes.")
+                    st.warning("🧠 IA analisa: Equipes muito equilibradas na faixa central. Forte tendência de gols.")
             st.write("")
 
     with col_l3:
@@ -172,14 +170,14 @@ with aba_noticias:
         for j in cursor.fetchall():
             st.markdown(f'<div class="card-jogos-lista"><span>{j[2]} vs {j[3]}</span><small style="font-weight:bold;">📅 {j[1]}</small></div>', unsafe_allow_html=True)
             
-    # Tabela dinâmica de rodapé baseada na rodada atual
+    # Tabela dinâmica de rodapé
     st.write("---")
     st.markdown('<div class="titulo-secao">📊 Classificação da Rodada (Grupo E)</div>', unsafe_allow_html=True)
     dados_tabela = {"Seleção": ["Alemanha", "Curaçao", "Costa do Marfim", "Equador"], "Pontos": [3, 0, 0, 0], "Jogos": [1, 1, 0, 0]}
     st.table(pd.DataFrame(dados_tabela).set_index("Seleção"))
     conn.close()
 
-# 7. ABA: TABELA PALPITES (O Jogo ao vivo da Alemanha já sumiu daqui!)
+# 7. ABA: TABELA PALPITES
 with aba_palpites:
     st.header("📋 Seus Palpites da Copa")
     st.write("Insira seus placares. O bloqueio acontece exatamente **10 minutos antes** de cada partida começar!")
@@ -189,8 +187,11 @@ with aba_palpites:
     cursor.execute("SELECT jogo_id, grupo, data_jogo, horario, time1, time2 FROM resultados_reais WHERE status='agendado' ORDER BY jogo_id ASC")
     jogos_ativos = cursor.fetchall()
     
+    # Hora fixa segura da rodada
+    agora = datetime(2026, 6, 14, 14, 22, 0)
+    
     if jogos_ativos:
-        with st.form("form_palpites_v11"):
+        with st.form("form_palpites_v12"):
             for j in jogos_ativos:
                 j_id, grupo, data, hora, t1, t2 = j
                 
@@ -217,7 +218,7 @@ with aba_palpites:
         st.info("Nenhum confronto futuro disponível para apostas no momento.")
     conn.close()
 
-# 8. ABAS CORRIGIDAS (NOME DO ERROR ENCONTRADO RESOLVIDO)
+# 8. ABAS COMPLEMENTARES CORRIGIDAS (Nomes idênticos para evitar NameError)
 with aba_tabela:
     st.header("📊 Tabelas de Classificação Geral - Primeira Fase")
     st.write("Mapeamento completo das seleções da Copa do Mundo 2026.")
