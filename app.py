@@ -1,11 +1,4 @@
-# Vamos recriar o código completo em Python para o arquivo app.py
-# Modificações:
-# 1. Tela de Entrada limpa pedindo o nome para acessar o site.
-# 2. Design moderno no tema Copa do Mundo (Cores verde, amarelo, azul, dourado).
-# 3. Informações dos Próximos Jogos em destaque (Fase de Grupos Completa e Simulações).
-# 4. Abas organizadas: 📋 Dar Palpites, 📊 Ranking Geral, 🗂️ Grupos da Copa, 🗺️ Chaveamento (Mata-Mata), 💬 Resenha.
-
-app_code_v2 = """import streamlit as st
+import streamlit as st
 import sqlite3
 import pandas as pd
 
@@ -42,7 +35,7 @@ st.markdown('''
 
 # 2. BANCO DE DADOS (SQLite)
 def conectar_banco():
-    return sqlite3.connect('copa_dados_v2.db', check_same_thread=False)
+    return sqlite3.connect('copa_dados_v3.db', check_same_thread=False)
 
 def inicializar_banco():
     conn = conectar_banco()
@@ -84,10 +77,9 @@ if st.session_state.usuario_logado is None:
         if botao_entrar and nome_entrada:
             st.session_state.usuario_logado = nome_entrada
             st.rerun()
-    st.stop()  # Trava a execução do código aqui para ninguém ver o site sem colocar o nome primeiro.
+    st.stop()
 
 # --- SE O USUÁRIO ESTIVER LOGADO, MOSTRA O SITE COMPLETO ABAIXO ---
-
 usuario_atual = st.session_state.usuario_logado
 
 # Menu Lateral de Logout e Controle do Admin
@@ -130,7 +122,7 @@ with aba_palpites:
     cursor.execute("SELECT jogo_id, rodada, time1, time2, encerrado, gols1, gols2 FROM resultados_reais")
     jogos = cursor.fetchall()
     
-    with st.form("form_palpites_v2"):
+    with st.form("form_palpites_v3"):
         for jogo in jogos:
             j_id, rodada, t1, t2, enc, r1, r2 = jogo
             st.markdown(f"##### **{rodada} - Jogo #{j_id}:** {t1} x {t2}")
@@ -159,7 +151,6 @@ with aba_palpites:
             st.success("Seus palpites foram guardados com sucesso!")
             st.rerun()
 
-    # Painel Secreto do Admin (Organizador) para colocar placar real dos jogos
     if usuario_atual == "AdminSecret":
         st.write("---")
         st.subheader("⚙️ Painel de Resultados do Organizador")
@@ -217,16 +208,13 @@ with aba_grupos:
     
     g_col1, g_col2 = st.columns(2)
     with g_col1:
-        st.info("### 🟢 GRUPO A\n1. Brasil 🇧🇷\n2. Espanha 🇪🇸\n3. Marrocos 🇲🇦\n4. Japão 🇯🇵")
+        st.info("### 🟢 GRUPO A\\n1. Brasil 🇧🇷\\n2. Espanha 🇪🇸\\n3. Marrocos 🇲🇦\\n4. Japão 🇯🇵")
     with g_col2:
-        st.warning("### 🔵 GRUPO B\n1. Argentina 🇦🇷\n2. França 🇫🇷\n3. EUA 🇺🇸\n4. Itália 🇮🇹")
+        st.warning("### 🔵 GRUPO B\\n1. Argentina 🇦🇷\\n2. França 🇫🇷\\n3. EUA 🇺🇸\\n4. Itália 🇮🇹")
         
     st.write("---")
     st.subheader("📢 Atualizações e Notícias Rápidas")
-    st.markdown('''
-    - **[Notícia]** Seleção Brasileira chega focada para a estreia em busca do Hexa!
-    - **[Logística]** Estádios prontos e gramados impecáveis na América do Norte.
-    ''')
+    st.markdown("- **[Notícia]** Seleção Brasileira chega focada para a estreia em busca do Hexa!\\n- **[Logística]** Estádios prontos e gramados impecáveis na América do Norte.")
 
 # --- ABA 4: CHAVEAMENTO / MATA-MATA ---
 with aba_chaveamento:
@@ -252,7 +240,7 @@ with aba_chat:
     cursor = conn.cursor()
     
     stickers_lista = ["⚽", "🏆", "🇧🇷", "🔥", "👑", "🤣", "💥", "👀"]
-    with st.form("form_chat_v2", clear_on_submit=True):
+    with st.form("form_chat_v3", clear_on_submit=True):
         msg = st.text_input("Mande sua mensagem ou provocação:")
         stk = st.selectbox("Escolha um Sticker:", stickers_lista)
         if st.form_submit_button("Enviar Mensagem 🚀") and msg:
@@ -266,8 +254,3 @@ with aba_chat:
     
     for m in mensagens:
         st.markdown(f"💬 **{m[0]}**: {m[1]} {m[2]}")
-"""
-
-with open("app.py", "w", encoding="utf-8") as f:
-    f.write(app_code_v2)
-print("File app.py updated with the requested layout.")
