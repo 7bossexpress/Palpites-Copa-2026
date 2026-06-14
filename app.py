@@ -120,26 +120,27 @@ with aba_palpites:
             
             col1, col2 = st.columns(2)
             with col1:
-                g1 = st.number_input(f"Gols {t1}", min_value=0, value=p1_val, key=f"p1_{j_id}")
+                st.number_input(f"Gols {t1}", min_value=0, value=p1_val, key=f"p1_{j_id}")
             with col2:
-                g2 = st.number_input(f"Gols {t2}", min_value=0, value=p2_val, key=f"p2_{j_id}")
-            
-            # Atualizar/Salvar no clique do formulário
-            if st.form_submit_button("Salvar todos os meus palpites 💾"):
-                for j_aux in jogos:
-                    ja_id = j_aux[0]
-                    ga1 = st.session_state[f"p1_{ja_id}"]
-                    ga2 = st.session_state[f"p2_{ja_id}"]
-                    cursor.execute('''
-                        INSERT OR REPLACE INTO palpites (usuario, jogo_id, gols1, gols2)
-                        VALUES (?, ?, ?, ?)
-                    ''', (usuario_atual, ja_id, ga1, ga2))
-                conn.commit()
-                st.success("Palpites guardados com sucesso no banco de dados!")
-                st.rerun()
+                st.number_input(f"Gols {t2}", min_value=0, value=p2_val, key=f"p2_{j_id}")
+        
+        # O BOTÃO ESTÁ AQUI FORA DO LOOP AGORA
+        if st.form_submit_button("Salvar todos os meus palpites 💾"):
+            for j_aux in jogos:
+                ja_id = j_aux[0]
+                ga1 = st.session_state[f"p1_{ja_id}"]
+                ga2 = st.session_state[f"p2_{ja_id}"]
+                cursor.execute('''
+                    INSERT OR REPLACE INTO palpites (usuario, jogo_id, gols1, gols2)
+                    VALUES (?, ?, ?, ?)
+                ''', (usuario_atual, ja_id, ga1, ga2))
+            conn.commit()
+            st.success("Palpites guardados com sucesso no banco de dados!")
+            st.rerun()
     
-    # ABA SECRETA DO ORGANIZADOR DENTRO DA ABA DE PALPITES
+    # ABA SECRETA DO ORGANIZADOR
     if usuario_atual == "AdminSecret":
+        # ... (seu código do Admin continua o mesmo aqui embaixo)
         st.write("---")
         st.subheader("⚙️ PAINEL DO ORGANIZADOR (Secreto)")
         st.write("Insira o resultado REAL dos jogos aqui para o site somar tudo sozinho.")
